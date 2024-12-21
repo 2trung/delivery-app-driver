@@ -48,7 +48,7 @@ instance.interceptors.response.use(
       } catch (error) {
         await deleteItemAsync('accessToken')
         await deleteItemAsync('refreshToken')
-        useAuth.getState().removeAuth()
+        useAuth.getState().logout()
       }
     } else if (error.response) {
       const errorMessage = error.response.data.message || 'Mạng không ổn định'

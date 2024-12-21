@@ -11,27 +11,30 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { TextInput } from 'react-native-paper'
 import { useEffect, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { login } from '@/api/authAPI'
+import useAuth from '@/store/authSlice'
 
 const Login = () => {
   const router = useRouter()
-
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['user'],
-    queryFn: () => {
-      console.log('call login')
-      return login(phoneNumber, password)
-    },
-    enabled: false,
-    retry: false,
-  })
-
+  const { setIsLogin, setToken } = useAuth()
   const [isShowPassword, setIsShowPassword] = useState(false)
   const [phoneNumber, setPhoneNumber] = useState('')
   const [password, setPassword] = useState('')
   const [isPasswordFocused, setIsPasswordFocused] = useState(false)
   const [formError, setFormError] = useState('')
+
+  const { isPending, error, mutate } = useMutation({
+    mutationFn: () => {
+      return login(phoneNumber, password)
+    },
+    onSuccess: (data) => {
+      setIsLogin(true)
+      setToken(data.accessToken, data.refreshToken)
+      router.replace('/home')
+    },
+  })
+
   const handleLogin = async () => {
     setFormError('')
     if (!validatePhoneNumber(phoneNumber)) {
@@ -42,19 +45,12 @@ const Login = () => {
       setFormError('Mật khẩu không được để trống')
       return
     }
-    refetch()
+    mutate()
   }
   const validatePhoneNumber = (phoneNumber: string) => {
     const phoneNumberRegex = /^0?[35789][0-9]{8}$/
     return phoneNumberRegex.test(phoneNumber)
   }
-
-  useEffect(() => {
-    if (data) {
-      router.push('/(tabs)/home')
-    }
-  }, [data])
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={{ marginBottom: 10 }}>
@@ -147,7 +143,7 @@ const Login = () => {
           style={styles.submitButton}
           onPress={() => handleLogin()}
         >
-          {isLoading ? (
+          {isPending ? (
             <ActivityIndicator color='white' />
           ) : (
             <Text style={{ color: 'white', fontSize: 14, fontWeight: '600' }}>
